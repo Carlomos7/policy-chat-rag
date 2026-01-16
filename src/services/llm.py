@@ -4,7 +4,8 @@ from langchain_core.language_models.chat_models import BaseChatModel
 import boto3
 
 from src.config.logging import get_logger
-from src.config.settings import LLMProvider, settings
+from src.config.settings import LLMProvider
+from src.config.settings import get_settings
 
 logger = get_logger(__name__)
 
@@ -15,7 +16,7 @@ class LLMClient:
     def __init__(
         self,
         provider: LLMProvider = LLMProvider.BEDROCK,
-        model: str = settings.bedrock_model_id,
+        model: str = None,
         temperature: float = 0.1,
         max_tokens: int = 1000,
         **kwargs,
@@ -48,6 +49,7 @@ class LLMClient:
         **kwargs,
     ) -> BaseChatModel:
         """Create the appropriate LangChain model."""
+        settings = get_settings()
         if provider == LLMProvider.BEDROCK:
             from langchain_aws import ChatBedrock
 
