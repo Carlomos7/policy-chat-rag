@@ -19,6 +19,11 @@ class LLMProvider(str, Enum):
     OPENAI = "openai"    # OpenAI or compatible (Ollama, LM Studio, vLLM)
     BEDROCK = "bedrock"  # AWS Bedrock
 
+class CheckpointType(str, Enum):
+    """Checkpoint type."""
+    MEMORY = "memory"
+    POSTGRES = "postgres"
+
 class Settings(BaseSettings):
     '''Application settings'''
 
@@ -47,13 +52,23 @@ class Settings(BaseSettings):
     
     # ChromaDB
     chroma_client_type: ChromaClientType = ChromaClientType.PERSISTENT
-    chroma_persist_path: Path = Path("./chroma_data")
+    chroma_persist_path: Path = PROJECT_ROOT / "data" / "chroma_data"
     chroma_host: str = "localhost"
     chroma_port: int = 8000
     chroma_tenant_id: str | None = None
     chroma_database: str | None = None
     chroma_cloud_api_key: str | None = None
     chroma_collection_name: str = "policy_rag_collection"
+
+    # Checkpoint/ThreadManagement
+    checkpoint_type: CheckpointType = CheckpointType.MEMORY
+    checkpoint_postgres_url: str = ""
+
+    # Logging
+    log_level: str = "INFO"
+    log_to_file: bool = False
+    log_dir: Path = PROJECT_ROOT / "logs"
+    logging_config_file: Path = SRC_ROOT / "config" / "logging_conf.json"
 
     # Directories
     data_dir: Path = PROJECT_ROOT / "data"
