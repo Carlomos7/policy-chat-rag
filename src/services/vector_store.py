@@ -93,7 +93,7 @@ class VectorStore:
         documents: list[str],
         metadatas: list[dict[str, Any]] | None = None,
         ids: list[str] | None = None,
-        batch_size: int = 500,
+        batch_size: int = 100,
     ) -> int:
         """Add documents to the collection in batches.
 
