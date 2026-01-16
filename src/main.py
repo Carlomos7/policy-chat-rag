@@ -1,9 +1,12 @@
 """FastAPI application."""
 
+import json
 from contextlib import asynccontextmanager
+from uuid import uuid4
 
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from src.config.logging import get_logger
 from src.config.settings import get_settings
@@ -54,18 +57,35 @@ def chat(
     request: ChatRequest,
     agent: PolicyAgent = Depends(get_agent),
 ) -> ChatResponse:
-    """Answer a question about policies.
-    
-    Args:
-        request: Chat request with question.
-        agent: Policy agent instance (injected).
-        
-    Returns:
-        Chat response with answer.
-    """
+    """Chat endpoint for policy Q&A."""
     try:
-        answer = agent.invoke(request.question, thread_id=request.thread_id)
-        return ChatResponse(answer=answer, thread_id=request.thread_id)
+        thread_id = request.thread_id or str(uuid4())
+        answer = agent.invoke(request.question, thread_id=thread_id)
+        return ChatResponse(answer=answer, thread_id=thread_id)
     except Exception as e:
         logger.error(f"Error processing question: {e}")
         raise HTTPException(status_code=500, detail="Failed to process question")
+
+
+@app.post("/chat/stream")
+def chat_stream(
+    request: ChatRequest,
+    agent: PolicyAgent = Depends(get_agent),
+):
+    """Stream chat response using LangGraph messages mode."""
+    thread_id = request.thread_id or str(uuid4())
+
+    def generate():
+        try:
+            for content in agent.stream(request.question, thread_id=thread_id):
+                yield f"data: {json.dumps({'content': content, 'thread_id': thread_id})}\n\n"
+            yield f"data: {json.dumps({'done': True, 'thread_id': thread_id})}\n\n"
+        except Exception as e:
+            logger.error(f"Stream error: {e}")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    )
