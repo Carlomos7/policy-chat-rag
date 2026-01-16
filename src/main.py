@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.config.logging import get_logger
 from src.config.settings import get_settings
-from src.api.dependencies import get_agent
+from src.dependencies import get_agent, init_checkpointer, cleanup_checkpointer
 from src.services.agent import PolicyAgent
 from src.schemas import ChatRequest, ChatResponse
 
@@ -18,7 +18,9 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
     logger.info("🚀 Starting Policy RAG API")
+    init_checkpointer()
     yield
+    cleanup_checkpointer()
     logger.info("🛑 Shutting down Policy RAG API")
 
 
@@ -62,8 +64,8 @@ def chat(
         Chat response with answer.
     """
     try:
-        answer = agent.invoke(request.question)
-        return ChatResponse(answer=answer)
+        answer = agent.invoke(request.question, thread_id=request.thread_id)
+        return ChatResponse(answer=answer, thread_id=request.thread_id)
     except Exception as e:
         logger.error(f"Error processing question: {e}")
         raise HTTPException(status_code=500, detail="Failed to process question")
