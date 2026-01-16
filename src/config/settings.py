@@ -27,7 +27,7 @@ class CheckpointType(str, Enum):
 class Settings(BaseSettings):
     '''Application settings'''
 
-    model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8')
+    model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8', extra="ignore")
     
     # App
     app_name: str = "Policy RAG API"
