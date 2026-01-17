@@ -1,9 +1,10 @@
 """Agent service using LangChain create_agent."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from langchain.agents import create_agent
 from langchain.tools import tool
+from langchain_core.messages import AIMessageChunk
 from langgraph.checkpoint.memory import InMemorySaver
 
 from src.config.logging import get_logger
@@ -14,9 +15,15 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-SYSTEM_PROMPT = """You are a helpful assistant that answers questions about company policies.
-Use the policy retrieval tool to find relevant information and answer user questions accurately.
-Be concise and direct in your responses."""
+SYSTEM_PROMPT = """You are the University of Richmond Policy Assistant helping students, faculty, and staff understand university policies.
+
+CRITICAL: Always use the retrieve_policies tool for EVERY question - never answer from memory.
+
+When responding:
+- Use bullet points for lists of requirements or steps
+- Cite policy numbers when available (e.g., "According to HRM-1008...")
+- If the tool returns insufficient information, say: "Based on the available policies, I cannot fully answer this question. Contact [relevant office] for clarification."
+- For follow-up questions, use conversation context appropriately"""
 
 
 class PolicyAgent:
@@ -32,6 +39,7 @@ class PolicyAgent:
         """
         self.llm = llm
         self.rag_service = rag_service
+        self._last_sources: list[str] = []
 
         @tool
         def retrieve_policies(question: str) -> str:
@@ -44,10 +52,9 @@ class PolicyAgent:
                 Answer based on policy documents.
             """
             result = self.rag_service.query(question)
-            sources = result.get("sources", [])
+            # Store sources for later retrieval
+            self._last_sources = result.get("sources", [])
             answer = result.get("answer", "")
-            if sources:
-                answer += f"\n\n(Sources: {', '.join(sources)})"
             return answer
 
         if checkpointer is None:
@@ -62,7 +69,7 @@ class PolicyAgent:
         )
         logger.info("✅ Policy agent initialized")
 
-    def invoke(self, question: str, thread_id: str) -> str:
+    def invoke(self, question: str, thread_id: str) -> dict[str, Any]:
         """Answer a question using the agent.
 
         Args:
@@ -70,14 +77,18 @@ class PolicyAgent:
             thread_id: Thread ID for conversation continuity.
 
         Returns:
-            Agent response.
+            Dict with 'answer' and 'sources' keys.
         """
+        self._last_sources = []
         config = {"configurable": {"thread_id": thread_id}}
         result = self.agent.invoke(
             {"messages": [{"role": "user", "content": question}]},
             config=config
         )
-        return result["messages"][-1].content
+        return {
+            "answer": result["messages"][-1].content,
+            "sources": self._last_sources,
+        }
 
     def stream(self, question: str, thread_id: str):
         """Stream agent response with LLM token streaming.
@@ -87,13 +98,23 @@ class PolicyAgent:
             thread_id: Thread ID for conversation continuity.
 
         Yields:
-            Response token chunks.
+            Dict chunks with 'content' or 'sources' keys.
         """
+        self._last_sources = []
         config = {"configurable": {"thread_id": thread_id}}
+        
         for chunk, metadata in self.agent.stream(
             {"messages": [{"role": "user", "content": question}]},
             config=config,
             stream_mode="messages",
         ):
-            if hasattr(chunk, 'content') and chunk.content:
-                yield chunk.content
+            # Only yield content from AIMessageChunk, not tool messages
+            if (
+                isinstance(chunk, AIMessageChunk)
+                and chunk.content
+                and not chunk.tool_calls  # Skip tool-calling messages
+            ):
+                yield {"content": chunk.content}
+        
+        # Yield sources at the end
+        yield {"sources": self._last_sources}
