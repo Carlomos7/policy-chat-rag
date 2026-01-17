@@ -60,8 +60,12 @@ def chat(
     """Chat endpoint for policy Q&A."""
     try:
         thread_id = request.thread_id or str(uuid4())
-        answer = agent.invoke(request.question, thread_id=thread_id)
-        return ChatResponse(answer=answer, thread_id=thread_id)
+        result = agent.invoke(request.question, thread_id=thread_id)
+        return ChatResponse(
+            answer=result["answer"],
+            sources=result["sources"],
+            thread_id=thread_id,
+        )
     except Exception as e:
         logger.error(f"Error processing question: {e}")
         raise HTTPException(status_code=500, detail="Failed to process question")
@@ -72,13 +76,16 @@ def chat_stream(
     request: ChatRequest,
     agent: PolicyAgent = Depends(get_agent),
 ):
-    """Stream chat response using LangGraph messages mode."""
+    """Stream chat response with sources."""
     thread_id = request.thread_id or str(uuid4())
 
     def generate():
         try:
-            for content in agent.stream(request.question, thread_id=thread_id):
-                yield f"data: {json.dumps({'content': content, 'thread_id': thread_id})}\n\n"
+            for chunk in agent.stream(request.question, thread_id=thread_id):
+                if "content" in chunk:
+                    yield f"data: {json.dumps({'content': chunk['content'], 'thread_id': thread_id})}\n\n"
+                elif "sources" in chunk:
+                    yield f"data: {json.dumps({'sources': chunk['sources'], 'thread_id': thread_id})}\n\n"
             yield f"data: {json.dumps({'done': True, 'thread_id': thread_id})}\n\n"
         except Exception as e:
             logger.error(f"Stream error: {e}")
