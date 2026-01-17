@@ -39,8 +39,7 @@ class Settings(BaseSettings):
     llm_provider: LLMProvider = LLMProvider.BEDROCK
     llm_model: str = "anthropic.claude-3-sonnet-20240229-v1:0"
     llm_temperature: float = 0.1
-    llm_rag_max_tokens: int = 400  # For RAG
-    llm_agent_max_tokens: int = 600  # For agent
+    llm_max_tokens: int = 600
     
     # LLM - Provider-specific
     llm_base_url: str = ""          # OpenAI-compatible only
@@ -74,21 +73,6 @@ class Settings(BaseSettings):
     # Directories
     data_dir: Path = PROJECT_ROOT / "data"
 
-    def get_llm_kwargs(self) -> dict:
-        """Get provider-specific kwargs for LLMClient."""
-        kwargs = {
-            "temperature": self.llm_temperature,
-            "rag_max_tokens": self.llm_rag_max_tokens,
-            "agent_max_tokens": self.llm_agent_max_tokens,
-        }
-
-        if self.llm_provider == LLMProvider.OPENAI:
-            if self.llm_base_url:
-                kwargs["base_url"] = self.llm_base_url
-            # For local models, use dummy API key if not provided
-            kwargs["api_key"] = self.llm_api_key or "not-needed"
-
-        return kwargs
 
 @lru_cache
 def get_settings() -> Settings:
