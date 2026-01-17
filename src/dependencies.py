@@ -2,29 +2,26 @@
 
 from functools import lru_cache
 
+import boto3
+from langchain_core.language_models.chat_models import BaseChatModel
 from langgraph.checkpoint.memory import InMemorySaver
-from langgraph.checkpoint.postgres import PostgresSaver
-
-from src.config.settings import get_settings, CheckpointType
-from src.services.agent import PolicyAgent
-from src.services.llm import LLMClient
-from src.services.rag import RAGService
-from src.services.vector_store import VectorStore
 
 from src.config.logging import get_logger
+from src.config.settings import get_settings, CheckpointType, LLMProvider
+from src.services.agent import PolicyAgent
+from src.services.vector_store import VectorStore
 
 logger = get_logger(__name__)
 
 # Global checkpointer (managed by app lifespan)
 _checkpointer = None
-_postgres_context = None
 
 
-def init_checkpointer():
+async def init_checkpointer():
     """Initialize checkpointer based on settings. Called during app startup."""
-    global _checkpointer, _postgres_context
+    global _checkpointer
     settings = get_settings()
-    
+
     if settings.checkpoint_type == CheckpointType.MEMORY:
         _checkpointer = InMemorySaver()
         logger.info("✅ InMemorySaver initialized")
@@ -33,25 +30,23 @@ def init_checkpointer():
             raise ValueError(
                 "checkpoint_postgres_url must be set when using postgres checkpoint type"
             )
-        # Enter the context manager and keep reference
-        _postgres_context = PostgresSaver.from_conn_string(
-            settings.checkpoint_postgres_url
-        )
-        _checkpointer = _postgres_context.__enter__()
-        _checkpointer.setup()
-        logger.info("✅ PostgresSaver initialized and tables created")
+        from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+
+        _checkpointer = AsyncPostgresSaver.from_conn_string(settings.checkpoint_postgres_url)
+        await _checkpointer.__aenter__()
+        await _checkpointer.setup()
+        logger.info("✅ AsyncPostgresSaver initialized")
     else:
         raise ValueError(f"Invalid checkpoint type: {settings.checkpoint_type}")
 
 
-def cleanup_checkpointer():
+async def cleanup_checkpointer():
     """Cleanup checkpointer. Called during app shutdown."""
-    global _checkpointer, _postgres_context
-    if _postgres_context is not None:
-        _postgres_context.__exit__(None, None, None)
-        logger.info("✅ PostgresSaver connection closed")
+    global _checkpointer
+    if _checkpointer is not None and hasattr(_checkpointer, "__aexit__"):
+        await _checkpointer.__aexit__(None, None, None)
+        logger.info("✅ AsyncPostgresSaver closed")
     _checkpointer = None
-    _postgres_context = None
 
 
 def get_checkpointer():
@@ -78,31 +73,48 @@ def get_vector_store() -> VectorStore:
 
 
 @lru_cache(maxsize=1)
-def get_llm() -> LLMClient:
-    """Get or create LLM client instance."""
+def get_model() -> BaseChatModel:
+    """Get or create LangChain chat model."""
     settings = get_settings()
-    return LLMClient(
-        provider=settings.llm_provider,
-        model=settings.llm_model,
-        **settings.get_llm_kwargs(),
-    )
 
+    if settings.llm_provider == LLMProvider.BEDROCK:
+        from langchain_aws import ChatBedrock
 
-@lru_cache(maxsize=1)
-def get_rag_service() -> RAGService:
-    """Get or create RAG service instance."""
-    return RAGService(
-        llm=get_llm(),
-        vector_store=get_vector_store(),
-        top_k=5,
-        threshold=1.2,
-    )
+        client = boto3.client(
+            "bedrock-runtime",
+            region_name=settings.aws_region,
+            aws_access_key_id=settings.aws_access_key_id,
+            aws_secret_access_key=settings.aws_secret_access_key,
+        )
+        model = ChatBedrock(
+            model_id=settings.llm_model,
+            client=client,
+            model_kwargs={
+                "temperature": settings.llm_temperature,
+                "max_tokens": settings.llm_max_tokens,
+            },
+        )
+    elif settings.llm_provider == LLMProvider.OPENAI:
+        from langchain_openai import ChatOpenAI
+
+        model = ChatOpenAI(
+            model=settings.llm_model,
+            temperature=settings.llm_temperature,
+            max_tokens=settings.llm_max_tokens,
+            base_url=settings.llm_base_url or None,
+            api_key=settings.llm_api_key or "not-needed",
+        )
+    else:
+        raise ValueError(f"Unknown provider: {settings.llm_provider}")
+
+    logger.info(f"✅ LLM initialized: {settings.llm_provider.value} / {settings.llm_model}")
+    return model
 
 
 def get_agent() -> PolicyAgent:
     """Get or create policy agent instance."""
     return PolicyAgent(
-        llm=get_llm(),
-        rag_service=get_rag_service(),
+        model=get_model(),
+        vector_store=get_vector_store(),
         checkpointer=get_checkpointer(),
     )
