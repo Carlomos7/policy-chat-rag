@@ -12,15 +12,13 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-RAG_PROMPT = """You are a concise assistant. Use the following policy documents to answer the question.
+RAG_PROMPT = """Answer the question using ONLY the policy documents below. Do not use external knowledge.
 
-Rules:
-1. Be extremely concise.
-2. Do NOT use bullet points or numbered lists.
-3. Provide a single, direct paragraph.
-4. If you don't know the answer, say so.
+If the documents don't contain enough information, say: "I don't have enough information in these policies to answer fully."
 
-Context:
+Always quote specific numbers, dates, and requirements exactly as written.
+
+Policy Documents:
 {context}
 
 Question: {question}
