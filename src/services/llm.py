@@ -18,7 +18,8 @@ class LLMClient:
         provider: LLMProvider = LLMProvider.BEDROCK,
         model: str = None,
         temperature: float = 0.1,
-        max_tokens: int = 1000,
+        rag_max_tokens: int = 400,
+        agent_max_tokens: int = 600,
         **kwargs,
     ):
         """Initialize LLM client.
@@ -27,20 +28,26 @@ class LLMClient:
             provider: LLM provider (BEDROCK or OPENAI).
             model: Model name/ID.
             temperature: Sampling temperature.
-            max_tokens: Max tokens in response.
+            rag_max_tokens: Max tokens for RAG generation (focused answers).
+            agent_max_tokens: Max tokens for agent responses (with formatting).
             **kwargs: Additional provider-specific arguments.
         """
         self.provider = provider
         self.model = model
+        self.temperature = temperature
+        self.rag_max_tokens = rag_max_tokens
+        self.agent_max_tokens = agent_max_tokens
+        self._provider_kwargs = kwargs
 
+        # Create agent LLM
         self.llm = self._create_llm(
             provider,
             model,
             temperature=temperature,
-            max_tokens=max_tokens,
+            max_tokens=agent_max_tokens,
             **kwargs,
         )
-        logger.info(f"✅ LLM initialized: {provider.value} / {model}")
+        logger.info(f"✅ LLM initialized: {provider.value} / {model} (agent: {agent_max_tokens}, rag: {rag_max_tokens})")
 
     def _create_llm(
         self,
@@ -74,11 +81,20 @@ class LLMClient:
     def invoke(self, prompt: str) -> str:
         """Simple invoke for RAG generation.
 
+        Uses rag_max_tokens for focused, policy-specific answers.
+
         Args:
             prompt: The full prompt string.
 
         Returns:
             Response content.
         """
-        response = self.llm.invoke(prompt)
+        rag_llm = self._create_llm(
+            self.provider,
+            self.model,
+            temperature=self.temperature,
+            max_tokens=self.rag_max_tokens,
+            **self._provider_kwargs,
+        )
+        response = rag_llm.invoke(prompt)
         return response.content
