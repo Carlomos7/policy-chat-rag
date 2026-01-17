@@ -21,9 +21,9 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
     logger.info("🚀 Starting Policy RAG API")
-    init_checkpointer()
+    await init_checkpointer()
     yield
-    cleanup_checkpointer()
+    await cleanup_checkpointer()
     logger.info("🛑 Shutting down Policy RAG API")
 
 
@@ -72,27 +72,19 @@ def chat(
 
 
 @app.post("/chat/stream")
-def chat_stream(
+async def chat_stream(
     request: ChatRequest,
     agent: PolicyAgent = Depends(get_agent),
 ):
     """Stream chat response with sources."""
     thread_id = request.thread_id or str(uuid4())
 
-    def generate():
-        try:
-            for chunk in agent.stream(request.question, thread_id=thread_id):
-                if "content" in chunk:
-                    yield f"data: {json.dumps({'content': chunk['content'], 'thread_id': thread_id})}\n\n"
-                elif "sources" in chunk:
-                    yield f"data: {json.dumps({'sources': chunk['sources'], 'thread_id': thread_id})}\n\n"
-            yield f"data: {json.dumps({'done': True, 'thread_id': thread_id})}\n\n"
-        except Exception as e:
-            logger.error(f"Stream error: {e}")
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+    async def generate():
+        # Stream content
+        async for chunk in agent.astream(request.question, thread_id=thread_id):
+            yield f"data: {json.dumps({'content': chunk, 'thread_id': thread_id})}\n\n"
 
-    return StreamingResponse(
-        generate(),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
-    )
+        # After stream completes, send sources once
+        yield f"data: {json.dumps({'sources': agent.last_sources, 'thread_id': thread_id})}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
