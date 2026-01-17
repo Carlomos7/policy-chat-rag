@@ -1,120 +1,98 @@
 """Agent service using LangChain create_agent."""
 
-from typing import TYPE_CHECKING, Any
-
 from langchain.agents import create_agent
 from langchain.tools import tool
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessageChunk
-from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.base import BaseCheckpointSaver
 
 from src.config.logging import get_logger
+from src.services.vector_store import VectorStore
 
-if TYPE_CHECKING:
-    from src.services.llm import LLMClient
-    from src.services.rag import RAGService
+from src.prompts import SYSTEM_PROMPT
 
 logger = get_logger(__name__)
-
-SYSTEM_PROMPT = """You are the University of Richmond Policy Assistant helping students, faculty, and staff understand university policies.
-
-CRITICAL: Always use the retrieve_policies tool for EVERY question - never answer from memory.
-
-When responding:
-- Use bullet points for lists of requirements or steps
-- Cite policy numbers when available (e.g., "According to HRM-1008...")
-- If the tool returns insufficient information, say: "Based on the available policies, I cannot fully answer this question. Contact [relevant office] for clarification."
-- For follow-up questions, use conversation context appropriately"""
 
 
 class PolicyAgent:
     """Agent for policy Q&A using RAG."""
 
-    def __init__(self, llm: "LLMClient", rag_service: "RAGService", checkpointer=None):
-        """Initialize agent.
-
-        Args:
-            llm: LLM client instance.
-            rag_service: RAG service for policy retrieval.
-            checkpointer: Checkpointer instance for thread management.
-        """
-        self.llm = llm
-        self.rag_service = rag_service
+    def __init__(
+        self,
+        model: BaseChatModel,
+        vector_store: VectorStore,
+        checkpointer: BaseCheckpointSaver,
+        top_k: int = 5,
+        threshold: float = 1.2,
+    ):
+        self._vector_store = vector_store
+        self._top_k = top_k
+        self._threshold = threshold
         self._last_sources: list[str] = []
 
         @tool
         def retrieve_policies(question: str) -> str:
-            """Retrieve relevant policies to answer a question.
+            """Search university policy documents to answer a question about policies."""
+            docs = self._vector_store.query(
+                query_text=question,
+                n_results=self._top_k,
+                threshold=self._threshold,
+            )
 
-            Args:
-                question: The user's question about policies.
+            if not docs:
+                return "No relevant policy documents found."
 
-            Returns:
-                Answer based on policy documents.
-            """
-            result = self.rag_service.query(question)
-            # Store sources for later retrieval
-            self._last_sources = result.get("sources", [])
-            answer = result.get("answer", "")
-            return answer
+            # Track sources once, structurally
+            self._last_sources = list({doc["source"] for doc in docs})
 
-        if checkpointer is None:
-            checkpointer = InMemorySaver()
-            logger.warning("No checkpointer provided, using InMemorySaver")
+            return "\n\n".join(
+                f"[Source: {doc['source']}]\n{doc['text']}"
+                for doc in docs
+            )
 
         self.agent = create_agent(
-            model=llm.get_llm(),
+            model=model,
             tools=[retrieve_policies],
             system_prompt=SYSTEM_PROMPT,
             checkpointer=checkpointer,
         )
+
         logger.info("✅ Policy agent initialized")
 
-    def invoke(self, question: str, thread_id: str) -> dict[str, Any]:
-        """Answer a question using the agent.
-
-        Args:
-            question: User question.
-            thread_id: Thread ID for conversation continuity.
-
-        Returns:
-            Dict with 'answer' and 'sources' keys.
-        """
+    def invoke(self, question: str, thread_id: str) -> dict:
+        """Answer a question using the agent (non-streaming)."""
         self._last_sources = []
+
         config = {"configurable": {"thread_id": thread_id}}
         result = self.agent.invoke(
             {"messages": [{"role": "user", "content": question}]},
-            config=config
+            config=config,
         )
+
         return {
-            "answer": result["messages"][-1].content,
+            "answer": result["messages"][-1].text,
             "sources": self._last_sources,
         }
 
-    def stream(self, question: str, thread_id: str):
-        """Stream agent response with LLM token streaming.
-
-        Args:
-            question: User question.
-            thread_id: Thread ID for conversation continuity.
-
-        Yields:
-            Dict chunks with 'content' or 'sources' keys.
-        """
+    async def astream(self, question: str, thread_id: str):
         self._last_sources = []
+
         config = {"configurable": {"thread_id": thread_id}}
-        
-        for chunk, metadata in self.agent.stream(
+
+        async for token, _ in self.agent.astream(
             {"messages": [{"role": "user", "content": question}]},
             config=config,
             stream_mode="messages",
         ):
-            # Only yield content from AIMessageChunk, not tool messages
             if (
-                isinstance(chunk, AIMessageChunk)
-                and chunk.content
-                and not chunk.tool_calls  # Skip tool-calling messages
+                isinstance(token, AIMessageChunk)
+                and token.text
+                and not token.tool_calls
             ):
-                yield {"content": chunk.content}
-        
-        # Yield sources at the end
-        yield {"sources": self._last_sources}
+                yield token.text
+
+
+    @property
+    def last_sources(self) -> list[str]:
+        """Sources from the most recent agent run."""
+        return self._last_sources
