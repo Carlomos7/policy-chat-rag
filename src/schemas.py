@@ -11,4 +11,5 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     """Chat response."""
     answer: str
+    sources: list[str] = []
     thread_id: str | None = None
