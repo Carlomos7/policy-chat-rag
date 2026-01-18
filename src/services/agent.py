@@ -28,7 +28,10 @@ class PolicyAgent:
         self._vector_store = vector_store
         self._top_k = top_k
         self._threshold = threshold
-        self._last_sources: list[str] = []
+        # Thread-keyed sources to avoid race conditions between concurrent requests
+        self._sources_by_thread: dict[str, list[str]] = {}
+        # Track current thread for tool access (set before each invoke/astream)
+        self._current_thread_id: str | None = None
 
         @tool
         def retrieve_policies(question: str) -> str:
@@ -42,8 +45,10 @@ class PolicyAgent:
             if not docs:
                 return "No relevant policy documents found."
 
-            # Track sources once, structurally
-            self._last_sources = list({doc["source"] for doc in docs})
+            # Store sources keyed by thread to avoid race conditions
+            sources = list({doc["source"] for doc in docs})
+            if self._current_thread_id:
+                self._sources_by_thread[self._current_thread_id] = sources
 
             return "\n\n".join(
                 f"[Source: {doc['source']}]\n{doc['text']}"
@@ -59,9 +64,14 @@ class PolicyAgent:
 
         logger.info("✅ Policy agent initialized")
 
+    def get_sources(self, thread_id: str) -> list[str]:
+        """Get sources for a specific thread. Clears them after retrieval."""
+        return self._sources_by_thread.pop(thread_id, [])
+
     def invoke(self, question: str, thread_id: str) -> dict:
         """Answer a question using the agent (non-streaming)."""
-        self._last_sources = []
+        self._current_thread_id = thread_id
+        self._sources_by_thread.pop(thread_id, None)  # Clear any stale sources
 
         config = {"configurable": {"thread_id": thread_id}}
         result = self.agent.invoke(
@@ -69,30 +79,40 @@ class PolicyAgent:
             config=config,
         )
 
+        sources = self.get_sources(thread_id)
+        self._current_thread_id = None
+
         return {
             "answer": result["messages"][-1].text,
-            "sources": self._last_sources,
+            "sources": sources,
         }
 
     async def astream(self, question: str, thread_id: str):
-        self._last_sources = []
+        """Stream response tokens. Call get_sources(thread_id) after streaming completes."""
+        self._current_thread_id = thread_id
+        self._sources_by_thread.pop(thread_id, None)  # Clear any stale sources
 
         config = {"configurable": {"thread_id": thread_id}}
 
-        async for token, _ in self.agent.astream(
-            {"messages": [{"role": "user", "content": question}]},
-            config=config,
-            stream_mode="messages",
-        ):
-            if (
-                isinstance(token, AIMessageChunk)
-                and token.text
-                and not token.tool_calls
+        try:
+            async for token, _ in self.agent.astream(
+                {"messages": [{"role": "user", "content": question}]},
+                config=config,
+                stream_mode="messages",
             ):
-                yield token.text
-
+                if (
+                    isinstance(token, AIMessageChunk)
+                    and token.text
+                    and not token.tool_calls
+                ):
+                    yield token.text
+        finally:
+            self._current_thread_id = None
 
     @property
     def last_sources(self) -> list[str]:
-        """Sources from the most recent agent run."""
-        return self._last_sources
+        """Sources from the most recent agent run (deprecated, use get_sources)."""
+        # Fallback for any code still using this
+        if self._current_thread_id:
+            return self._sources_by_thread.get(self._current_thread_id, [])
+        return []
