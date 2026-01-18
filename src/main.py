@@ -8,11 +8,12 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-from src.config.logging import get_logger
+from src.config.logging import get_logger, setup_logging
 from src.config.settings import get_settings
 from src.dependencies import get_agent, init_checkpointer, cleanup_checkpointer
 from src.services.agent import PolicyAgent
-from src.schemas import ChatRequest, ChatResponse
+from src.schemas import ChatRequest, ChatResponse, ThreadResponse
+
 
 logger = get_logger(__name__)
 
@@ -20,6 +21,7 @@ logger = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
+    setup_logging()
     logger.info("🚀 Starting Policy RAG API")
     await init_checkpointer()
     yield
@@ -52,6 +54,14 @@ def health_check():
     return {"status": "ok"}
 
 
+@app.post("/threads", response_model=ThreadResponse)
+def create_thread() -> ThreadResponse:
+    """Create a new conversation thread."""
+    thread_id = str(uuid4())
+    logger.debug(f"Created new thread: {thread_id}")
+    return ThreadResponse(thread_id=thread_id)
+
+
 @app.post("/chat", response_model=ChatResponse)
 def chat(
     request: ChatRequest,
@@ -59,12 +69,11 @@ def chat(
 ) -> ChatResponse:
     """Chat endpoint for policy Q&A."""
     try:
-        thread_id = request.thread_id or str(uuid4())
-        result = agent.invoke(request.question, thread_id=thread_id)
+        result = agent.invoke(request.question, thread_id=request.thread_id)
         return ChatResponse(
             answer=result["answer"],
             sources=result["sources"],
-            thread_id=thread_id,
+            thread_id=request.thread_id,
         )
     except Exception as e:
         logger.error(f"Error processing question: {e}")
@@ -77,14 +86,17 @@ async def chat_stream(
     agent: PolicyAgent = Depends(get_agent),
 ):
     """Stream chat response with sources."""
-    thread_id = request.thread_id or str(uuid4())
+    thread_id = request.thread_id
 
     async def generate():
         # Stream content
         async for chunk in agent.astream(request.question, thread_id=thread_id):
             yield f"data: {json.dumps({'content': chunk, 'thread_id': thread_id})}\n\n"
+        
+        # Get sources after streaming completes (thread-safe)
+        sources = agent.get_sources(thread_id)
 
-        # After stream completes, send sources once
-        yield f"data: {json.dumps({'sources': agent.last_sources, 'thread_id': thread_id})}\n\n"
+        # Send sources as final chunk
+        yield f"data: {json.dumps({'sources': sources, 'thread_id': thread_id})}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
