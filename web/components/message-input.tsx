@@ -109,35 +109,35 @@ export function MessageInput({ centered = false }: MessageInputProps) {
   };
 
   if (centered) {
-    // Landing page centered input
+    // Landing page centered input - mobile-first
     return (
       <div className="w-full">
         <div className="relative">
-          <div className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4 shadow-lg transition-shadow hover:shadow-xl">
+          <div className="flex items-start gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-border bg-card p-3 sm:p-4 shadow-lg transition-shadow hover:shadow-xl">
             <textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask about University of Richmond policies..."
+              placeholder="Ask about policies..."
               disabled={isDisabled}
               rows={1}
-              className="max-h-[200px] min-h-[32px] w-full resize-none bg-transparent text-base text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
+              className="max-h-[200px] min-h-[32px] w-full resize-none bg-transparent text-sm sm:text-base text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
             />
             <button
               onClick={handleSubmit}
               disabled={!canSend}
               className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all",
+                "flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl transition-all",
                 canSend
                   ? "bg-primary text-white hover:bg-primary/90 hover:scale-105 hover:shadow-md active:scale-95"
                   : "cursor-not-allowed bg-primary/30 text-primary/50"
               )}
             >
               {isDisabled ? (
-                <LoadingIcon className="h-5 w-5" />
+                <LoadingIcon className="h-4 w-4 sm:h-5 sm:w-5" />
               ) : (
-                <SendIcon className="h-5 w-5" />
+                <SendIcon className="h-4 w-4 sm:h-5 sm:w-5" />
               )}
             </button>
           </div>
@@ -146,23 +146,23 @@ export function MessageInput({ centered = false }: MessageInputProps) {
     );
   }
 
-  // Chat view bottom input
+  // Chat view bottom input - mobile-first
   return (
     <div className="bg-transparent">
-      <div className="mx-auto max-w-3xl p-4">
-        <div className="flex items-end gap-3 rounded-2xl border border-border bg-background/90 backdrop-blur-sm px-4 py-3">
+      <div className="mx-auto max-w-3xl px-2 py-2 sm:px-4 sm:py-4">
+        <div className="flex items-end gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-border bg-background/90 backdrop-blur-sm px-3 py-2 sm:px-4 sm:py-3">
           <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about University of Richmond policies..."
+            placeholder="Ask about policies..."
             disabled={isDisabled}
             rows={1}
             className="max-h-[200px] min-h-[24px] w-full resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
           />
-          
-          {/* Quick Actions Popover */}
+
+          {/* Quick Actions Popover - hidden on small screens to save space */}
           <Popover>
             <Tooltip>
               <PopoverTrigger asChild>
@@ -170,7 +170,7 @@ export function MessageInput({ centered = false }: MessageInputProps) {
                   <button
                     disabled={isDisabled}
                     className={cn(
-                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all",
+                      "hidden min-[400px]:flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg sm:rounded-xl transition-all",
                       isDisabled
                         ? "cursor-not-allowed bg-muted/50 text-muted-foreground/50"
                         : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground hover:scale-105 active:scale-95"
@@ -185,7 +185,7 @@ export function MessageInput({ centered = false }: MessageInputProps) {
                 <p>Quick actions</p>
               </TooltipContent>
             </Tooltip>
-            <PopoverContent side="top" align="end" className="w-64 p-2 bg-background/90 backdrop-blur-sm">
+            <PopoverContent side="top" align="end" className="w-56 sm:w-64 p-2 bg-background/90 backdrop-blur-sm">
               <div className="space-y-1">
                 <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Quick Actions</p>
                 {QUICK_PROMPTS.map((prompt) => {
@@ -217,7 +217,7 @@ export function MessageInput({ centered = false }: MessageInputProps) {
                 onClick={handleSubmit}
                 disabled={!canSend}
                 className={cn(
-                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all",
+                  "flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg sm:rounded-xl transition-all",
                   canSend
                     ? "bg-primary/90 text-white hover:bg-primary hover:scale-105 active:scale-95"
                     : "cursor-not-allowed bg-primary/30 text-primary/50"

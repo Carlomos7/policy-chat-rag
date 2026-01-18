@@ -4,11 +4,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ConversationSidebar } from "@/components/conversation-sidebar";
+import { MobileNavSheet } from "@/components/mobile-nav-sheet";
 import { MessageInput } from "@/components/message-input";
 import { TypewriterText } from "@/components/typewriter-text";
 import { useChat } from "@/lib/chat-context";
 import { useTheme } from "@/lib/theme-context";
-import { SparkleIcon, SunIcon, MoonIcon, PlusIcon, HistoryIcon } from "@/components/icons";
+import {
+  SparkleIcon,
+  SunIcon,
+  MoonIcon,
+  PlusIcon,
+  HistoryIcon,
+  MenuIcon,
+} from "@/components/icons";
 import {
   Tooltip,
   TooltipContent,
@@ -47,15 +55,23 @@ function ConnectionStatus() {
   if (connectionStatus === "connected") return null;
 
   return (
-    <div className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-full ${connectionStatus === "checking"
-        ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
-        : "bg-red-500/10 text-red-600 dark:text-red-400"
-      }`}>
-      <span className={`h-2 w-2 rounded-full ${connectionStatus === "checking"
-          ? "bg-yellow-500 animate-pulse"
-          : "bg-red-500"
-        }`} />
-      {connectionStatus === "checking" ? "Connecting..." : "Disconnected"}
+    <div
+      className={`flex items-center gap-2 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-full ${
+        connectionStatus === "checking"
+          ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+          : "bg-red-500/10 text-red-600 dark:text-red-400"
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full ${
+          connectionStatus === "checking"
+            ? "bg-yellow-500 animate-pulse"
+            : "bg-red-500"
+        }`}
+      />
+      <span className="hidden sm:inline">
+        {connectionStatus === "checking" ? "Connecting..." : "Disconnected"}
+      </span>
     </div>
   );
 }
@@ -66,7 +82,6 @@ function SuggestedPrompt({ text }: { text: string }) {
 
   const handleClick = async () => {
     if (!isLoading && !isStreaming) {
-      // Create thread first, navigate immediately, then send message
       const threadId = await startConversation(text);
       if (threadId) {
         router.push(`/chat/${threadId}`);
@@ -79,7 +94,7 @@ function SuggestedPrompt({ text }: { text: string }) {
     <button
       onClick={handleClick}
       disabled={isLoading || isStreaming}
-      className="rounded-full border border-border bg-card/50 px-4 py-2 text-sm text-muted-foreground transition-all hover:bg-card hover:text-foreground hover:border-primary/30 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+      className="rounded-full border border-border bg-card/50 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-muted-foreground transition-all hover:bg-card hover:text-foreground hover:border-primary/30 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {text}
     </button>
@@ -88,9 +103,9 @@ function SuggestedPrompt({ text }: { text: string }) {
 
 export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { startNewConversation } = useChat();
 
-  // Handle new conversation
   const handleNewConversation = () => {
     startNewConversation();
   };
@@ -98,8 +113,8 @@ export default function Home() {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex h-screen w-full">
-        {/* Icon Bar - Always visible */}
-        <div className="relative z-50 flex h-full w-14 shrink-0 flex-col items-center border-r border-border bg-sidebar py-3">
+        {/* Desktop Icon Bar - Hidden on mobile */}
+        <div className="relative z-50 hidden sm:flex h-full w-14 shrink-0 flex-col items-center border-r border-border bg-sidebar py-3">
           {/* Logo - clickable, starts new conversation */}
           <button
             onClick={handleNewConversation}
@@ -152,8 +167,9 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Sidebar Panel - slides in from left on history hover */}
+        {/* Desktop Sidebar Panel - slides in from left on history hover */}
         <div
+          className="hidden sm:block"
           onMouseLeave={() => setSidebarOpen(false)}
         >
           <ConversationSidebar
@@ -162,23 +178,49 @@ export default function Home() {
           />
         </div>
 
+        {/* Mobile Navigation Sheet */}
+        <MobileNavSheet
+          isOpen={mobileNavOpen}
+          onClose={() => setMobileNavOpen(false)}
+        />
+
         {/* Main Content */}
-        <main className="flex flex-1 flex-col overflow-hidden">
-          {/* Header Bar - minimal on landing */}
-          <div className="shrink-0 border-b border-border px-4">
-            <div className="mx-auto flex h-12 max-w-3xl items-center justify-end">
+        <main className="flex flex-1 flex-col overflow-hidden min-w-0">
+          {/* Header Bar */}
+          <div className="shrink-0 border-b border-border px-3 sm:px-4">
+            <div className="mx-auto flex h-12 max-w-3xl items-center justify-between gap-2">
+              {/* Mobile: Hamburger + Logo */}
+              <div className="flex sm:hidden items-center gap-3">
+                <button
+                  onClick={() => setMobileNavOpen(true)}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground hover:bg-muted transition-colors"
+                  aria-label="Open menu"
+                >
+                  <MenuIcon className="size-5" />
+                </button>
+                <div className="flex items-center gap-2">
+                  <SparkleIcon className="size-5 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">
+                    policy chatbot.
+                  </span>
+                </div>
+              </div>
+
+              {/* Desktop: Empty spacer */}
+              <div className="hidden sm:block" />
+
               <ConnectionStatus />
             </div>
           </div>
 
-          {/* Landing View - Centered */}
-          <div className="flex flex-1 flex-col items-center justify-center p-8">
+          {/* Desktop Landing View - Centered */}
+          <div className="hidden sm:flex flex-1 flex-col items-center justify-center p-8">
             <div className="w-full max-w-3xl">
               {/* Title with icon inline and typewriter effect */}
-              <h1 className="mb-2 flex items-center justify-center gap-3 text-5xl font-light tracking-tight text-foreground">
-                <SparkleIcon className="size-10 text-primary animate-in fade-in zoom-in duration-500" />
-                <TypewriterText 
-                  text="policy chatbot." 
+              <h1 className="mb-2 flex items-center justify-center gap-3 text-4xl md:text-5xl font-light tracking-tight text-foreground">
+                <SparkleIcon className="size-8 md:size-10 text-primary animate-in fade-in zoom-in duration-500" />
+                <TypewriterText
+                  text="policy chatbot."
                   speed={70}
                   delay={400}
                   showCursorAfterComplete={true}
@@ -186,8 +228,10 @@ export default function Home() {
               </h1>
 
               {/* Subtitle */}
-              <p className="mb-10 text-center text-lg text-muted-foreground animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-                Get answers from the official University of Richmond policy manual covering academic, HR, IT security, financial, and campus operations.
+              <p className="mb-10 text-center text-base md:text-lg text-muted-foreground animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+                Get answers from the official University of Richmond policy
+                manual covering academic, HR, IT security, financial, and campus
+                operations.
               </p>
 
               {/* Input with animation */}
@@ -200,11 +244,43 @@ export default function Home() {
                 {[
                   "What is the alcohol policy?",
                   "Remote work guidelines",
-                  "Academic integrity rules"
+                  "Academic integrity rules",
                 ].map((prompt) => (
                   <SuggestedPrompt key={prompt} text={prompt} />
                 ))}
               </div>
+            </div>
+          </div>
+
+          {/* Mobile Landing View - Title at top, input at bottom */}
+          <div className="flex sm:hidden flex-1 flex-col">
+            {/* Top section with title */}
+            <div className="flex-1 flex flex-col items-center justify-center px-6 pb-4">
+              <h1 className="text-2xl font-medium text-center text-foreground leading-snug">
+                <TypewriterText
+                  text="What policy do you want to know about?"
+                  speed={50}
+                  delay={300}
+                  showCursorAfterComplete={true}
+                />
+              </h1>
+            </div>
+
+            {/* Bottom section with prompts and input */}
+            <div className="px-3 pb-4 space-y-3">
+              {/* Suggested prompts */}
+              <div className="flex flex-wrap justify-center gap-2">
+                {[
+                  "What is the alcohol policy?",
+                  "Remote work guidelines",
+                  "Academic integrity rules",
+                ].map((prompt) => (
+                  <SuggestedPrompt key={prompt} text={prompt} />
+                ))}
+              </div>
+
+              {/* Input */}
+              <MessageInput centered />
             </div>
           </div>
         </main>

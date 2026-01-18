@@ -4,16 +4,18 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useChat } from "@/lib/chat-context";
 import { useTheme } from "@/lib/theme-context";
-import { 
-  SparkleIcon, 
-  HistoryIcon, 
-  MessageIcon, 
-  TrashIcon, 
-  SearchIcon, 
+import { MobileNavSheet } from "@/components/mobile-nav-sheet";
+import {
+  SparkleIcon,
+  HistoryIcon,
+  MessageIcon,
+  TrashIcon,
+  SearchIcon,
   PlusIcon,
   SunIcon,
   MoonIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  MenuIcon
 } from "@/components/icons";
 import {
   Tooltip,
@@ -68,6 +70,7 @@ function formatRelativeDate(dateString: string): string {
 export default function HistoryPage() {
   const { conversations, deleteConversation, startNewConversation, getMessagesForThread, isHydrated } = useChat();
   const [searchQuery, setSearchQuery] = useState("");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // Filter conversations based on search
   const filteredConversations = useMemo(() => {
@@ -146,8 +149,8 @@ export default function HistoryPage() {
     if (convs.length === 0) return null;
 
     return (
-      <div className="mb-8">
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">{title}</h2>
+      <div className="mb-6 sm:mb-8">
+        <h2 className="mb-2 sm:mb-3 text-xs sm:text-sm font-medium text-muted-foreground">{title}</h2>
         <div className="space-y-2">
           {convs.map((conv) => {
             const messages = getMessagesForThread(conv.thread_id);
@@ -158,20 +161,20 @@ export default function HistoryPage() {
               <Link
                 key={conv.thread_id}
                 href={`/chat/${conv.thread_id}`}
-                className="group block rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30 hover:shadow-md"
+                className="group block rounded-lg sm:rounded-xl border border-border bg-card p-3 sm:p-4 transition-all hover:border-primary/30 hover:shadow-md"
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start justify-between gap-2 sm:gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <MessageIcon className="size-4 shrink-0 text-primary" />
-                      <h3 className="truncate font-medium text-foreground">
+                      <MessageIcon className="size-3.5 sm:size-4 shrink-0 text-primary" />
+                      <h3 className="truncate text-sm sm:text-base font-medium text-foreground">
                         {conv.title}
                       </h3>
                     </div>
-                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                    <p className="mt-1 line-clamp-2 text-xs sm:text-sm text-muted-foreground">
                       {preview}
                     </p>
-                    <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                    <div className="mt-1.5 sm:mt-2 flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-muted-foreground">
                       <span>{formatRelativeDate(conv.updated_at)}</span>
                       <span>•</span>
                       <span>{conv.message_count} messages</span>
@@ -179,10 +182,10 @@ export default function HistoryPage() {
                   </div>
                   <button
                     onClick={(e) => handleDelete(e, conv.thread_id)}
-                    className="shrink-0 rounded-lg p-2 opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                    className="shrink-0 rounded-lg p-1.5 sm:p-2 opacity-100 sm:opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive sm:group-hover:opacity-100"
                     aria-label="Delete conversation"
                   >
-                    <TrashIcon className="size-4" />
+                    <TrashIcon className="size-3.5 sm:size-4" />
                   </button>
                 </div>
               </Link>
@@ -196,8 +199,8 @@ export default function HistoryPage() {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex h-screen w-full">
-        {/* Icon Bar - Always visible */}
-        <div className="relative z-50 flex h-full w-14 shrink-0 flex-col items-center border-r border-border bg-sidebar py-3">
+        {/* Desktop Icon Bar - Hidden on mobile */}
+        <div className="relative z-50 hidden sm:flex h-full w-14 shrink-0 flex-col items-center border-r border-border bg-sidebar py-3">
           {/* Logo - clickable, goes home */}
           <Link
             href="/"
@@ -248,48 +251,89 @@ export default function HistoryPage() {
           </div>
         </div>
 
+        {/* Mobile Navigation Sheet */}
+        <MobileNavSheet
+          isOpen={mobileNavOpen}
+          onClose={() => setMobileNavOpen(false)}
+        />
+
         {/* Main Content */}
-        <main className="flex flex-1 flex-col overflow-hidden">
+        <main className="flex flex-1 flex-col overflow-hidden min-w-0">
           {/* Header */}
-          <div className="shrink-0 border-b border-border px-6 py-4">
+          <div className="shrink-0 border-b border-border px-3 sm:px-6 py-3 sm:py-4">
             <div className="mx-auto max-w-4xl">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center justify-between gap-3 sm:gap-4">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  {/* Mobile: Hamburger */}
+                  <button
+                    onClick={() => setMobileNavOpen(true)}
+                    className="flex sm:hidden h-9 w-9 items-center justify-center rounded-lg text-foreground hover:bg-muted transition-colors"
+                    aria-label="Open menu"
+                  >
+                    <MenuIcon className="size-5" />
+                  </button>
+
+                  {/* Mobile: Sparkle icon + title */}
+                  <div className="flex sm:hidden items-center gap-2">
+                    <Link
+                      href="/"
+                      onClick={() => startNewConversation()}
+                      className="flex items-center justify-center"
+                      aria-label="Home"
+                    >
+                      <SparkleIcon className="size-5 text-primary" />
+                    </Link>
+                    <h1 className="text-base font-semibold text-foreground">Chat History</h1>
+                  </div>
+
+                  {/* Desktop: Back button */}
+                  <Link
+                    href="/"
+                    className="hidden sm:flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <ArrowLeftIcon className="size-4" />
+                    <span className="text-sm">Back</span>
+                  </Link>
+                  <div className="hidden sm:block h-4 w-px bg-border" />
+                  <h1 className="hidden sm:block text-lg font-semibold text-foreground">Chat History</h1>
+                </div>
+
+                {/* Mobile: New thread button */}
                 <Link
                   href="/"
-                  className="flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
+                  onClick={() => startNewConversation()}
+                  className="flex sm:hidden items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-all hover:bg-primary/90 active:scale-95"
                 >
-                  <ArrowLeftIcon className="size-4" />
-                  <span className="text-sm">Back</span>
+                  <PlusIcon className="size-3.5" />
+                  <span>New thread</span>
                 </Link>
-                <div className="h-4 w-px bg-border" />
-                <h1 className="text-lg font-semibold text-foreground">Chat History</h1>
               </div>
             </div>
           </div>
 
           {/* Search Bar */}
-          <div className="shrink-0 border-b border-border px-6 py-4">
+          <div className="shrink-0 border-b border-border px-3 sm:px-6 py-3 sm:py-4">
             <div className="mx-auto max-w-4xl">
               <div className="relative">
-                <SearchIcon className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <SearchIcon className="absolute left-3 sm:left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search conversations..."
-                  className="w-full rounded-xl border border-border bg-card py-3 pl-11 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-lg sm:rounded-xl border border-border bg-card py-2.5 sm:py-3 pl-10 sm:pl-11 pr-10 sm:pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     ✕
                   </button>
                 )}
               </div>
               {searchQuery && (
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="mt-2 text-xs sm:text-sm text-muted-foreground">
                   {filteredConversations.length} result{filteredConversations.length !== 1 ? "s" : ""} for &quot;{searchQuery}&quot;
                 </p>
               )}
@@ -297,29 +341,29 @@ export default function HistoryPage() {
           </div>
 
           {/* Conversation List */}
-          <div className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 sm:py-6">
             <div className="mx-auto max-w-4xl">
               {conversations.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <MessageIcon className="mb-4 size-12 text-muted-foreground" />
-                  <h2 className="mb-2 text-lg font-medium text-foreground">No conversations yet</h2>
-                  <p className="mb-6 text-muted-foreground">
+                <div className="flex flex-col items-center justify-center py-12 sm:py-20 text-center px-4">
+                  <MessageIcon className="mb-3 sm:mb-4 size-10 sm:size-12 text-muted-foreground" />
+                  <h2 className="mb-2 text-base sm:text-lg font-medium text-foreground">No conversations yet</h2>
+                  <p className="mb-4 sm:mb-6 text-sm sm:text-base text-muted-foreground">
                     Start a new conversation to see it here
                   </p>
                   <Link
                     href="/"
                     onClick={() => startNewConversation()}
-                    className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-md"
+                    className="flex items-center gap-2 rounded-lg sm:rounded-xl bg-primary px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-medium text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-md"
                   >
                     <PlusIcon className="size-4" />
                     New conversation
                   </Link>
                 </div>
               ) : filteredConversations.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <SearchIcon className="mb-4 size-12 text-muted-foreground" />
-                  <h2 className="mb-2 text-lg font-medium text-foreground">No results found</h2>
-                  <p className="text-muted-foreground">
+                <div className="flex flex-col items-center justify-center py-12 sm:py-20 text-center px-4">
+                  <SearchIcon className="mb-3 sm:mb-4 size-10 sm:size-12 text-muted-foreground" />
+                  <h2 className="mb-2 text-base sm:text-lg font-medium text-foreground">No results found</h2>
+                  <p className="text-sm sm:text-base text-muted-foreground">
                     Try a different search term
                   </p>
                 </div>

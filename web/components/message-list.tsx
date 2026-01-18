@@ -14,11 +14,11 @@ import type { Message } from "@/lib/types";
 // Typing indicator with three animated dots
 const TypingIndicator = memo(function TypingIndicator() {
   return (
-    <div className="flex gap-4 justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 shadow-sm">
-        <SparkleIcon className="size-5 text-primary" />
+    <div className="flex gap-2 sm:gap-4 justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <div className="flex size-7 sm:size-9 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 shadow-sm">
+        <SparkleIcon className="size-4 sm:size-5 text-primary" />
       </div>
-      <div className="rounded-2xl px-4 py-3 shadow-sm bg-card/80 text-card-foreground backdrop-blur-sm border border-border/50">
+      <div className="rounded-xl sm:rounded-2xl px-3 py-2 sm:px-4 sm:py-3 shadow-sm bg-card/80 text-card-foreground backdrop-blur-sm border border-border/50">
         <div className="flex items-center gap-1.5 h-5">
           <span className="size-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms', animationDuration: '600ms' }} />
           <span className="size-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms', animationDuration: '600ms' }} />
@@ -249,20 +249,20 @@ const MessageItem = memo(function MessageItem({
   return (
     <div
       className={cn(
-        "flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300",
+        "flex gap-2 sm:gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300",
         message.role === "user" ? "justify-end" : "justify-start"
       )}
     >
       {message.role === "assistant" && (
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 shadow-sm">
-          <SparkleIcon className="size-5 text-primary" />
+        <div className="flex size-7 sm:size-9 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 shadow-sm">
+          <SparkleIcon className="size-4 sm:size-5 text-primary" />
         </div>
       )}
 
-      <div className="max-w-[80%] min-w-0 space-y-2">
+      <div className="max-w-[85%] sm:max-w-[80%] min-w-0 space-y-2">
         <div
           className={cn(
-            "rounded-2xl px-4 py-3 shadow-sm transition-all duration-150 ease-out overflow-hidden",
+            "rounded-xl sm:rounded-2xl px-3 py-2 sm:px-4 sm:py-3 shadow-sm transition-all duration-150 ease-out overflow-hidden",
             message.role === "user"
               ? "bg-primary text-primary-foreground shadow-primary/20"
               : "bg-card/80 text-card-foreground backdrop-blur-sm border border-border/50"
@@ -272,15 +272,15 @@ const MessageItem = memo(function MessageItem({
             <div className="prose prose-sm prose-invert max-w-none text-card-foreground break-words">
               {showCursor ? (
                 // While streaming: show plain text with typing cursor
-                <StreamingText 
-                  text={message.content} 
+                <StreamingText
+                  text={message.content}
                   isStreaming={true}
                   speed={15}
                 />
               ) : (
                 // After streaming: render full markdown
-                <ReactMarkdown 
-                  remarkPlugins={[remarkGfm]} 
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
                   rehypePlugins={[[rehypePrism, { ignoreMissing: true }]]}
                   components={markdownComponents}
                 >
@@ -299,7 +299,7 @@ const MessageItem = memo(function MessageItem({
         {message.role === "assistant" &&
           message.sources &&
           message.sources.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 px-1">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 px-1">
               <SourcesPill
                 sources={message.sources}
                 onClick={() => onOpenSources(message.sources!)}
@@ -318,8 +318,8 @@ const MessageItem = memo(function MessageItem({
       </div>
 
       {message.role === "user" && (
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/20 shadow-sm shadow-primary/10">
-          <UserIcon className="size-5 text-primary" />
+        <div className="flex size-7 sm:size-9 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-primary/20 shadow-sm shadow-primary/10">
+          <UserIcon className="size-4 sm:size-5 text-primary" />
         </div>
       )}
     </div>
@@ -423,10 +423,10 @@ export function MessageList() {
         
         <div
           ref={scrollRef}
-          className="h-full w-full overflow-y-auto px-4 py-6 pb-40"
+          className="h-full w-full overflow-y-auto px-2 sm:px-4 py-4 sm:py-6 pb-32 sm:pb-40"
           data-scroll-container
         >
-          <div className="mx-auto w-full max-w-3xl space-y-6">
+          <div className="mx-auto w-full max-w-3xl space-y-4 sm:space-y-6">
             {messages.map((message, index) => (
               <MessageItem
                 key={message.id}

@@ -4,11 +4,19 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ConversationSidebar } from "@/components/conversation-sidebar";
+import { MobileNavSheet } from "@/components/mobile-nav-sheet";
 import { MessageList } from "@/components/message-list";
 import { MessageInput } from "@/components/message-input";
 import { useChat } from "@/lib/chat-context";
 import { useTheme } from "@/lib/theme-context";
-import { SparkleIcon, SunIcon, MoonIcon, PlusIcon, HistoryIcon } from "@/components/icons";
+import {
+  SparkleIcon,
+  SunIcon,
+  MoonIcon,
+  PlusIcon,
+  HistoryIcon,
+  MenuIcon,
+} from "@/components/icons";
 import {
   Tooltip,
   TooltipContent,
@@ -47,33 +55,46 @@ function ConnectionStatus() {
   if (connectionStatus === "connected") return null;
 
   return (
-    <div className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-full ${connectionStatus === "checking"
-        ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
-        : "bg-red-500/10 text-red-600 dark:text-red-400"
-      }`}>
-      <span className={`h-2 w-2 rounded-full ${connectionStatus === "checking"
-          ? "bg-yellow-500 animate-pulse"
-          : "bg-red-500"
-        }`} />
-      {connectionStatus === "checking" ? "Connecting..." : "Disconnected"}
+    <div
+      className={`flex items-center gap-2 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-full ${
+        connectionStatus === "checking"
+          ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+          : "bg-red-500/10 text-red-600 dark:text-red-400"
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full ${
+          connectionStatus === "checking"
+            ? "bg-yellow-500 animate-pulse"
+            : "bg-red-500"
+        }`}
+      />
+      <span className="hidden sm:inline">
+        {connectionStatus === "checking" ? "Connecting..." : "Disconnected"}
+      </span>
     </div>
   );
 }
 
 function RetryBanner() {
-  const { failedMessage, retryFailedMessage, dismissFailedMessage, isLoading } = useChat();
+  const {
+    failedMessage,
+    retryFailedMessage,
+    dismissFailedMessage,
+    isLoading,
+  } = useChat();
 
   if (!failedMessage) return null;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 pt-2">
-      <div className="flex items-center justify-between gap-3 rounded-lg bg-amber-500/10 px-4 py-2 text-sm text-amber-700 dark:text-amber-300">
-        <span>Message failed to send</span>
+    <div className="mx-auto max-w-3xl px-2 sm:px-4 pt-2">
+      <div className="flex items-center justify-between gap-2 sm:gap-3 rounded-lg bg-amber-500/10 px-3 sm:px-4 py-2 text-xs sm:text-sm text-amber-700 dark:text-amber-300">
+        <span>Message failed</span>
         <div className="flex gap-2">
           <button
             onClick={retryFailedMessage}
             disabled={isLoading}
-            className="rounded-md bg-amber-600 px-3 py-1 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+            className="rounded-md bg-amber-600 px-2 sm:px-3 py-1 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
           >
             Retry
           </button>
@@ -91,13 +112,16 @@ function RetryBanner() {
 
 export function ChatLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const router = useRouter();
   const { conversations, activeThreadId, startNewConversation } = useChat();
 
   // Redirect to home if thread no longer exists (was deleted)
   useEffect(() => {
     if (activeThreadId) {
-      const threadExists = conversations.some(c => c.thread_id === activeThreadId);
+      const threadExists = conversations.some(
+        (c) => c.thread_id === activeThreadId
+      );
       if (!threadExists) {
         router.replace("/");
       }
@@ -105,7 +129,9 @@ export function ChatLayout() {
   }, [activeThreadId, conversations, router]);
 
   // Get the active conversation title
-  const activeConversation = conversations.find(c => c.thread_id === activeThreadId);
+  const activeConversation = conversations.find(
+    (c) => c.thread_id === activeThreadId
+  );
   const chatTitle = activeConversation?.title || "New Conversation";
 
   // Handle new conversation - navigate to home
@@ -117,8 +143,8 @@ export function ChatLayout() {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex h-screen w-full">
-        {/* Icon Bar - Always visible */}
-        <div className="relative z-50 flex h-full w-14 shrink-0 flex-col items-center border-r border-border bg-sidebar py-3">
+        {/* Desktop Icon Bar - Hidden on mobile */}
+        <div className="relative z-50 hidden sm:flex h-full w-14 shrink-0 flex-col items-center border-r border-border bg-sidebar py-3">
           {/* Logo - clickable, starts new conversation */}
           <Link
             href="/"
@@ -172,8 +198,9 @@ export function ChatLayout() {
           </div>
         </div>
 
-        {/* Sidebar Panel - slides in from left on history hover */}
+        {/* Desktop Sidebar Panel - slides in from left on history hover */}
         <div
+          className="hidden sm:block"
           onMouseLeave={() => setSidebarOpen(false)}
         >
           <ConversationSidebar
@@ -182,14 +209,33 @@ export function ChatLayout() {
           />
         </div>
 
+        {/* Mobile Navigation Sheet */}
+        <MobileNavSheet
+          isOpen={mobileNavOpen}
+          onClose={() => setMobileNavOpen(false)}
+        />
+
         {/* Main Content */}
-        <main className="flex flex-1 flex-col overflow-hidden">
+        <main className="flex flex-1 flex-col overflow-hidden min-w-0">
           {/* Header Bar */}
-          <div className="shrink-0 border-b border-border px-4">
-            <div className="mx-auto flex h-12 max-w-3xl items-center justify-between">
-              <h1 className="truncate text-sm font-medium text-foreground">
-                {chatTitle}
-              </h1>
+          <div className="shrink-0 border-b border-border px-2 sm:px-4">
+            <div className="mx-auto flex h-12 max-w-3xl items-center justify-between gap-2">
+              {/* Mobile: Hamburger + Title */}
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                {/* Mobile Hamburger */}
+                <button
+                  onClick={() => setMobileNavOpen(true)}
+                  className="flex sm:hidden h-9 w-9 items-center justify-center rounded-lg text-foreground hover:bg-muted transition-colors"
+                  aria-label="Open menu"
+                >
+                  <MenuIcon className="size-5" />
+                </button>
+
+                <h1 className="truncate text-sm font-medium text-foreground min-w-0 flex-1">
+                  {chatTitle}
+                </h1>
+              </div>
+
               <ConnectionStatus />
             </div>
           </div>
