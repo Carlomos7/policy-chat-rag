@@ -8,8 +8,8 @@ import chromadb
 from chromadb.api import ClientAPI
 from chromadb.config import Settings as ChromaSettings
 
-from src.config.logging import get_logger
-from src.config.settings import ChromaClientType
+from app.config.logging import get_logger
+from app.config.settings import ChromaClientType
 
 logger = get_logger(__name__)
 

@@ -6,10 +6,10 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessageChunk
 from langgraph.checkpoint.base import BaseCheckpointSaver
 
-from src.config.logging import get_logger
-from src.services.vector_store import VectorStore
+from app.config.logging import get_logger
+from app.services.vector_store import VectorStore
 
-from src.prompts import SYSTEM_PROMPT
+from app.prompts import SYSTEM_PROMPT
 
 logger = get_logger(__name__)
 

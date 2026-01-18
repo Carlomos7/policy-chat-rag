@@ -6,10 +6,10 @@ import boto3
 from langchain_core.language_models.chat_models import BaseChatModel
 from langgraph.checkpoint.memory import InMemorySaver
 
-from src.config.logging import get_logger
-from src.config.settings import get_settings, CheckpointType, LLMProvider
-from src.services.agent import PolicyAgent
-from src.services.vector_store import VectorStore
+from app.config.logging import get_logger
+from app.config.settings import get_settings, CheckpointType, LLMProvider
+from app.services.agent import PolicyAgent
+from app.services.vector_store import VectorStore
 
 logger = get_logger(__name__)
 

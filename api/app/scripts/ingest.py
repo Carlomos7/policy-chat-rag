@@ -20,9 +20,9 @@ from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.config.logging import get_logger, setup_logging
-from src.config.settings import get_settings
-from src.services.vector_store import VectorStore
+from app.config.logging import get_logger, setup_logging
+from app.config.settings import get_settings
+from app.services.vector_store import VectorStore
 
 # Initialize logging with file handlers if configured
 setup_logging()

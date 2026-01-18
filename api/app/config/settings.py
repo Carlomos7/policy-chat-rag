@@ -5,8 +5,9 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-SRC_ROOT = Path(__file__).parent
-PROJECT_ROOT = SRC_ROOT.parent
+CONFIG_DIR = Path(__file__).parent
+APP_ROOT = CONFIG_DIR.parent
+PROJECT_ROOT = APP_ROOT.parent
 
 class ChromaClientType(str, Enum):
     """ChromaDB client type."""
@@ -68,7 +69,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_to_file: bool = False
     log_dir: Path = PROJECT_ROOT / "logs"
-    logging_config_file: Path = SRC_ROOT / "config" / "logging_conf.json"
+    logging_config_file: Path = CONFIG_DIR / "logging_conf.json"
 
     # Directories
     data_dir: Path = PROJECT_ROOT / "data"

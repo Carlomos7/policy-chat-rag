@@ -8,11 +8,11 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-from src.config.logging import get_logger, setup_logging
-from src.config.settings import get_settings
-from src.dependencies import get_agent, init_checkpointer, cleanup_checkpointer
-from src.services.agent import PolicyAgent
-from src.schemas import ChatRequest, ChatResponse, ThreadResponse
+from app.config.logging import get_logger, setup_logging
+from app.config.settings import get_settings
+from app.dependencies import get_agent, init_checkpointer, cleanup_checkpointer
+from app.services.agent import PolicyAgent
+from app.schemas import ChatRequest, ChatResponse, ThreadResponse
 
 
 logger = get_logger(__name__)
