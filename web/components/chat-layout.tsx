@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ConversationSidebar } from "@/components/conversation-sidebar";
+import { MessageList } from "@/components/message-list";
 import { MessageInput } from "@/components/message-input";
-import { TypewriterText } from "@/components/typewriter-text";
 import { useChat } from "@/lib/chat-context";
 import { useTheme } from "@/lib/theme-context";
 import { SparkleIcon, SunIcon, MoonIcon, PlusIcon, HistoryIcon } from "@/components/icons";
@@ -60,39 +60,58 @@ function ConnectionStatus() {
   );
 }
 
-function SuggestedPrompt({ text }: { text: string }) {
-  const router = useRouter();
-  const { sendMessage, startConversation, isLoading, isStreaming } = useChat();
+function RetryBanner() {
+  const { failedMessage, retryFailedMessage, dismissFailedMessage, isLoading } = useChat();
 
-  const handleClick = async () => {
-    if (!isLoading && !isStreaming) {
-      // Create thread first, navigate immediately, then send message
-      const threadId = await startConversation(text);
-      if (threadId) {
-        router.push(`/chat/${threadId}`);
-        sendMessage(text, threadId);
-      }
-    }
-  };
+  if (!failedMessage) return null;
 
   return (
-    <button
-      onClick={handleClick}
-      disabled={isLoading || isStreaming}
-      className="rounded-full border border-border bg-card/50 px-4 py-2 text-sm text-muted-foreground transition-all hover:bg-card hover:text-foreground hover:border-primary/30 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      {text}
-    </button>
+    <div className="mx-auto max-w-3xl px-4 pt-2">
+      <div className="flex items-center justify-between gap-3 rounded-lg bg-amber-500/10 px-4 py-2 text-sm text-amber-700 dark:text-amber-300">
+        <span>Message failed to send</span>
+        <div className="flex gap-2">
+          <button
+            onClick={retryFailedMessage}
+            disabled={isLoading}
+            className="rounded-md bg-amber-600 px-3 py-1 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+          >
+            Retry
+          </button>
+          <button
+            onClick={dismissFailedMessage}
+            className="rounded-md px-2 py-1 text-xs hover:bg-amber-500/20"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
-export default function Home() {
+export function ChatLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { startNewConversation } = useChat();
+  const router = useRouter();
+  const { conversations, activeThreadId, startNewConversation } = useChat();
 
-  // Handle new conversation
+  // Redirect to home if thread no longer exists (was deleted)
+  useEffect(() => {
+    if (activeThreadId) {
+      const threadExists = conversations.some(c => c.thread_id === activeThreadId);
+      if (!threadExists) {
+        router.replace("/");
+      }
+    }
+  }, [activeThreadId, conversations, router]);
+
+  // Get the active conversation title
+  const activeConversation = conversations.find(c => c.thread_id === activeThreadId);
+  const chatTitle = activeConversation?.title || "New Conversation";
+
+  // Handle new conversation - navigate to home
   const handleNewConversation = () => {
     startNewConversation();
+    router.push("/");
   };
 
   return (
@@ -101,13 +120,14 @@ export default function Home() {
         {/* Icon Bar - Always visible */}
         <div className="relative z-50 flex h-full w-14 shrink-0 flex-col items-center border-r border-border bg-sidebar py-3">
           {/* Logo - clickable, starts new conversation */}
-          <button
-            onClick={handleNewConversation}
+          <Link
+            href="/"
+            onClick={() => startNewConversation()}
             className="mb-4 flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 transition-all hover:from-primary/30 hover:to-primary/10 hover:shadow-md active:scale-95"
             aria-label="New conversation"
           >
             <SparkleIcon className="size-5 text-primary" />
-          </button>
+          </Link>
 
           {/* New Thread Button */}
           <Tooltip>
@@ -164,47 +184,24 @@ export default function Home() {
 
         {/* Main Content */}
         <main className="flex flex-1 flex-col overflow-hidden">
-          {/* Header Bar - minimal on landing */}
+          {/* Header Bar */}
           <div className="shrink-0 border-b border-border px-4">
-            <div className="mx-auto flex h-12 max-w-3xl items-center justify-end">
+            <div className="mx-auto flex h-12 max-w-3xl items-center justify-between">
+              <h1 className="truncate text-sm font-medium text-foreground">
+                {chatTitle}
+              </h1>
               <ConnectionStatus />
             </div>
           </div>
 
-          {/* Landing View - Centered */}
-          <div className="flex flex-1 flex-col items-center justify-center p-8">
-            <div className="w-full max-w-3xl">
-              {/* Title with icon inline and typewriter effect */}
-              <h1 className="mb-2 flex items-center justify-center gap-3 text-5xl font-light tracking-tight text-foreground">
-                <SparkleIcon className="size-10 text-primary animate-in fade-in zoom-in duration-500" />
-                <TypewriterText 
-                  text="policy chatbot." 
-                  speed={70}
-                  delay={400}
-                  showCursorAfterComplete={true}
-                />
-              </h1>
-
-              {/* Subtitle */}
-              <p className="mb-10 text-center text-lg text-muted-foreground animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-                Get answers from the official University of Richmond policy manual covering academic, HR, IT security, financial, and campus operations.
-              </p>
-
-              {/* Input with animation */}
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-                <MessageInput centered />
-              </div>
-
-              {/* Suggested prompts */}
-              <div className="mt-8 flex flex-wrap justify-center gap-2 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
-                {[
-                  "What is the alcohol policy?",
-                  "Remote work guidelines",
-                  "Academic integrity rules"
-                ].map((prompt) => (
-                  <SuggestedPrompt key={prompt} text={prompt} />
-                ))}
-              </div>
+          {/* Chat View */}
+          <div className="relative flex-1 overflow-hidden">
+            <div className="h-full overflow-hidden">
+              <MessageList />
+            </div>
+            <RetryBanner />
+            <div className="absolute bottom-0 left-0 right-0">
+              <MessageInput />
             </div>
           </div>
         </main>

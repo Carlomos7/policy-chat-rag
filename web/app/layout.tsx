@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ChatProvider } from "@/lib/chat-context";
+import { ThemeProvider } from "@/lib/theme-context";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Policy Chat",
-  description: "Ask questions about company policies",
+  title: "University of Richmond Policies",
+  description: "Ask questions about University of Richmond policies",
 };
 
 export default function RootLayout({
@@ -24,11 +25,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
-        <ChatProvider>{children}</ChatProvider>
+        <ThemeProvider>
+          <ChatProvider>{children}</ChatProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
