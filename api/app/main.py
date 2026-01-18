@@ -29,23 +29,31 @@ async def lifespan(app: FastAPI):
     logger.info("🛑 Shutting down Policy RAG API")
 
 
+def create_app() -> FastAPI:
+    """Create and configure the FastAPI application."""
+    settings = get_settings()
+
+    application = FastAPI(
+        title=settings.app_name,
+        description=settings.app_description,
+        version=settings.version,
+        lifespan=lifespan,
+    )
+
+    # CORS middleware
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    return application
+
+
+app = create_app()
 settings = get_settings()
-
-app = FastAPI(
-    title=settings.app_name,
-    description=settings.app_description,
-    version=settings.version,
-    lifespan=lifespan,
-)
-
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 @app.get("/health")
