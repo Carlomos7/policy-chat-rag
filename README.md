@@ -120,6 +120,13 @@ policy-chat-rag/
 └── README.md
 ```
 
+## Documentation
+
+For more detailed information about specific components:
+
+- **[API Documentation](./api/README.md)** - FastAPI backend setup, endpoints, and configuration
+- **[Web Documentation](./web/README.md)** - Next.js frontend setup, components, and development guide
+
 ## Notes
 
 - All configuration is via the root `.env` file.
@@ -129,7 +136,9 @@ policy-chat-rag/
 
 ## Development
 
-For local development without Docker, see the individual README files in the `api/` and `web/` directories for setup instructions.
+For local development without Docker, see the individual documentation:
+- **[API Development Guide](./api/README.md)** - Backend setup and API endpoints
+- **[Web Development Guide](./web/README.md)** - Frontend setup and component documentation
 
 ---
 
