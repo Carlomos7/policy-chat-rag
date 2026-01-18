@@ -38,7 +38,7 @@
       }
     },
     "loggers": {
-      "src": {
+      "app": {
         "level": "DEBUG",
         "handlers": ["console", "file", "error_file"],
         "propagate": false

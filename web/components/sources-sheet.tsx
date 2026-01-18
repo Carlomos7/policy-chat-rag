@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { XIcon } from "./icons";
 
 function formatSourceName(filename: string): string {
@@ -21,6 +22,20 @@ interface SourcesSheetProps {
 }
 
 export function SourcesSheet({ sources, isOpen, onClose }: SourcesSheetProps) {
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -32,11 +47,16 @@ export function SourcesSheet({ sources, isOpen, onClose }: SourcesSheetProps) {
       />
 
       {/* Sheet */}
-      <div className="fixed right-0 top-0 z-50 h-full w-80 transform bg-sidebar border-l border-sidebar-border shadow-xl transition-transform duration-200 ease-out">
+      <div 
+        className="fixed right-0 top-0 z-50 h-full w-80 transform bg-sidebar border-l border-sidebar-border shadow-xl transition-transform duration-200 ease-out"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sources-sheet-title"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-sidebar-border p-4">
           <div>
-            <h2 className="text-lg font-semibold text-sidebar-foreground">
+            <h2 id="sources-sheet-title" className="text-lg font-semibold text-sidebar-foreground">
               Sources
             </h2>
             <p className="text-sm text-muted-foreground">

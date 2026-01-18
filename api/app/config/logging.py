@@ -6,7 +6,7 @@ import json
 import logging
 import logging.config
 from pathlib import Path
-from src.config.settings import get_settings
+from app.config.settings import get_settings
 
 settings = get_settings()
 APP_NAME = settings.app_name
@@ -61,16 +61,13 @@ def setup_logging() -> logging.Logger:
     return logger
 
 
-def get_logger(name: str = APP_NAME, module: str = None) -> logging.Logger:
+def get_logger(name: str = None) -> logging.Logger:
     """
-    Get a logger for a specific module or the default logger.
-    Args:
-        name: The name of the logger.
-        module: The name of the module to get a logger for.
-    Returns:
-        A logger for the specific module or the default logger.
+    Get a logger for a specific module.
+    
+    If name starts with 'app.', returns that logger directly (matches config).
+    Otherwise returns the root 'app' logger.
     """
-    if module:
-        return logging.getLogger(name).getChild(module)
-    else:
+    if name and name.startswith("app"):
         return logging.getLogger(name)
+    return logging.getLogger("app")

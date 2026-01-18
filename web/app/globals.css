@@ -18,6 +18,8 @@
   --color-primary: var(--primary);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
 }
 
 :root {
@@ -25,6 +27,8 @@
   --foreground: #f5f5f5;
   --card: #242424;
   --card-foreground: #f5f5f5;
+  --popover: #f5f5f5;
+  --popover-foreground: #1a1a1a;
   --primary: #20b8cd;
   --primary-foreground: #1a1a1a;
   --muted: #2a2a2a;
@@ -38,12 +42,68 @@
   --sidebar-border: #2a2a2a;
 }
 
+/* Dark theme (default) */
+.dark {
+  --background: #1a1a1a;
+  --foreground: #f5f5f5;
+  --card: #242424;
+  --card-foreground: #f5f5f5;
+  --popover: #f5f5f5;
+  --popover-foreground: #1a1a1a;
+  --primary: #20b8cd;
+  --primary-foreground: #1a1a1a;
+  --muted: #2a2a2a;
+  --muted-foreground: #808080;
+  --destructive: #ef4444;
+  --border: #3a3a3a;
+  --sidebar: #141414;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-accent: #2a2a2a;
+  --sidebar-accent-foreground: #f5f5f5;
+  --sidebar-border: #2a2a2a;
+}
+
+/* Light theme */
+.light {
+  --background: #faf8f5;
+  --foreground: #1a1a1a;
+  --card: #fffdf9;
+  --card-foreground: #1a1a1a;
+  --popover: #242424;
+  --popover-foreground: #f5f5f5;
+  --primary: #0891a2;
+  --primary-foreground: #ffffff;
+  --muted: #f5f0e8;
+  --muted-foreground: #64748b;
+  --destructive: #dc2626;
+  --border: #e8e0d4;
+  --sidebar: #faf7f2;
+  --sidebar-foreground: #1a1a1a;
+  --sidebar-accent: #f0e8dc;
+  --sidebar-accent-foreground: #1a1a1a;
+  --sidebar-border: #e8e0d4;
+}
+
 @layer base {
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Ensure all interactive elements show pointer cursor */
+  button,
+  [role="button"],
+  [type="button"],
+  [type="submit"],
+  [type="reset"],
+  a,
+  label[for],
+  select,
+  summary,
+  [tabindex]:not([tabindex="-1"]) {
+    cursor: pointer;
   }
 
   /* Performance optimizations */
@@ -111,4 +171,273 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--muted-foreground);
+}
+
+/* Streaming cursor animation */
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+/* Streaming cursor - blinking turquoise bar */
+.streaming-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background-color: var(--primary);
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  border-radius: 1px;
+  animation: blink 1s step-end infinite;
+}
+
+/* Typing cursor animation for StreamingText component */
+@keyframes typing-cursor {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+.typing-cursor {
+  color: var(--primary);
+  font-weight: 400;
+  animation: typing-cursor 1s infinite;
+}
+
+/* When streaming, make the last block element inline so cursor flows with text */
+.streaming-active > *:last-child {
+  display: inline;
+}
+
+/* Prism.js syntax highlighting theme - One Dark inspired */
+code[class*="language-"],
+pre[class*="language-"] {
+  color: #abb2bf;
+  background: none;
+  font-family: var(--font-mono), Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+  font-size: 0.875em;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  line-height: 1.6;
+  tab-size: 2;
+  hyphens: none;
+}
+
+pre[class*="language-"] {
+  padding: 1em;
+  margin: 0.5em 0;
+  overflow: auto;
+  border-radius: 0.5rem;
+  background: #282c34;
+}
+
+:not(pre) > code[class*="language-"] {
+  padding: 0.2em 0.4em;
+  border-radius: 0.25rem;
+  white-space: normal;
+  background: #282c34;
+}
+
+/* Light theme code blocks */
+.light code[class*="language-"],
+.light pre[class*="language-"] {
+  color: #383a42;
+}
+
+.light pre[class*="language-"] {
+  background: #f6f8fa;
+  border: 1px solid var(--border);
+}
+
+.light :not(pre) > code[class*="language-"] {
+  background: #f6f8fa;
+}
+
+/* Token colors - Dark theme */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #5c6370;
+  font-style: italic;
+}
+
+.token.punctuation {
+  color: #abb2bf;
+}
+
+.token.namespace {
+  opacity: 0.7;
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.deleted {
+  color: #e06c75;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+  color: #98c379;
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #56b6c2;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: #c678dd;
+}
+
+.token.function,
+.token.class-name {
+  color: #61afef;
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+  color: #c678dd;
+}
+
+.token.important,
+.token.bold {
+  font-weight: bold;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+.token.entity {
+  cursor: help;
+}
+
+/* Light theme token overrides */
+.light .token.comment,
+.light .token.prolog,
+.light .token.doctype,
+.light .token.cdata {
+  color: #a0a1a7;
+}
+
+.light .token.punctuation {
+  color: #383a42;
+}
+
+.light .token.property,
+.light .token.tag,
+.light .token.boolean,
+.light .token.number,
+.light .token.constant,
+.light .token.symbol,
+.light .token.deleted {
+  color: #e45649;
+}
+
+.light .token.selector,
+.light .token.attr-name,
+.light .token.string,
+.light .token.char,
+.light .token.builtin,
+.light .token.inserted {
+  color: #50a14f;
+}
+
+.light .token.operator,
+.light .token.entity,
+.light .token.url,
+.light .language-css .token.string,
+.light .style .token.string {
+  color: #0184bc;
+}
+
+.light .token.atrule,
+.light .token.attr-value,
+.light .token.keyword {
+  color: #a626a4;
+}
+
+.light .token.function,
+.light .token.class-name {
+  color: #4078f2;
+}
+
+.light .token.regex,
+.light .token.important,
+.light .token.variable {
+  color: #986801;
+}
+
+/* Line numbers (if enabled) */
+.line-number::before {
+  display: inline-block;
+  width: 1.5em;
+  margin-right: 1em;
+  text-align: right;
+  color: #5c6370;
+  content: attr(line);
+}
+
+.light .line-number::before {
+  color: #a0a1a7;
+}
+
+/* Code block line highlighting */
+.code-highlight {
+  float: left;
+  min-width: 100%;
+}
+
+.code-line {
+  display: block;
+  padding-left: 1em;
+  padding-right: 1em;
+  margin-left: -1em;
+  margin-right: -1em;
+  border-left: 4px solid transparent;
+}
+
+.code-line.inserted {
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+.code-line.deleted {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.highlight-line {
+  margin-left: -1em;
+  margin-right: -1em;
+  padding-left: calc(1em - 4px);
+  background-color: rgba(55, 65, 81, 0.5);
+  border-left: 4px solid var(--primary);
+}
+
+.light .highlight-line {
+  background-color: rgba(59, 130, 246, 0.1);
 }
