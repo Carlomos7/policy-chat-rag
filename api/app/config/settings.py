@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     version: str = "0.1.0"
     debug_mode: bool = False
 
+    # Server
+    host: str = "0.0.0.0"
+    port: int = 8000
+
     # LLM Config
     llm_provider: LLMProvider = LLMProvider.BEDROCK
     llm_model: str = "anthropic.claude-3-sonnet-20240229-v1:0"
