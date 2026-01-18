@@ -4,6 +4,7 @@
 # Allow only what's needed for the build
 !pyproject.toml
 !uv.lock
+!run.py
 !app/
 
 # Re-ignore unwanted nested files
