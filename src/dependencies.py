@@ -13,13 +13,14 @@ from src.services.vector_store import VectorStore
 
 logger = get_logger(__name__)
 
-# Global checkpointer (managed by app lifespan)
+# Global checkpointer
 _checkpointer = None
+_checkpointer_ctx = None
 
 
 async def init_checkpointer():
     """Initialize checkpointer based on settings. Called during app startup."""
-    global _checkpointer
+    global _checkpointer, _checkpointer_ctx
     settings = get_settings()
 
     if settings.checkpoint_type == CheckpointType.MEMORY:
@@ -31,9 +32,9 @@ async def init_checkpointer():
                 "checkpoint_postgres_url must be set when using postgres checkpoint type"
             )
         from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-
-        _checkpointer = AsyncPostgresSaver.from_conn_string(settings.checkpoint_postgres_url)
-        await _checkpointer.__aenter__()
+        
+        _checkpointer_ctx = AsyncPostgresSaver.from_conn_string(settings.checkpoint_postgres_url)
+        _checkpointer = await _checkpointer_ctx.__aenter__()
         await _checkpointer.setup()
         logger.info("✅ AsyncPostgresSaver initialized")
     else:
@@ -42,11 +43,12 @@ async def init_checkpointer():
 
 async def cleanup_checkpointer():
     """Cleanup checkpointer. Called during app shutdown."""
-    global _checkpointer
-    if _checkpointer is not None and hasattr(_checkpointer, "__aexit__"):
-        await _checkpointer.__aexit__(None, None, None)
+    global _checkpointer, _checkpointer_ctx
+    if _checkpointer_ctx is not None:
+        await _checkpointer_ctx.__aexit__(None, None, None)
         logger.info("✅ AsyncPostgresSaver closed")
     _checkpointer = None
+    _checkpointer_ctx = None
 
 
 def get_checkpointer():
