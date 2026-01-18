@@ -46,20 +46,20 @@ export function SourcesSheet({ sources, isOpen, onClose }: SourcesSheetProps) {
         onClick={onClose}
       />
 
-      {/* Sheet */}
-      <div 
-        className="fixed right-0 top-0 z-50 h-full w-80 transform bg-sidebar border-l border-sidebar-border shadow-xl transition-transform duration-200 ease-out"
+      {/* Sheet - full width on mobile, fixed width on larger screens */}
+      <div
+        className="fixed right-0 top-0 z-50 h-full w-full sm:w-80 transform bg-sidebar border-l border-sidebar-border shadow-xl transition-transform duration-200 ease-out"
         role="dialog"
         aria-modal="true"
         aria-labelledby="sources-sheet-title"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-sidebar-border p-4">
+        <div className="flex items-center justify-between border-b border-sidebar-border p-3 sm:p-4">
           <div>
-            <h2 id="sources-sheet-title" className="text-lg font-semibold text-sidebar-foreground">
+            <h2 id="sources-sheet-title" className="text-base sm:text-lg font-semibold text-sidebar-foreground">
               Sources
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {sources.length} document{sources.length !== 1 ? "s" : ""} referenced
             </p>
           </div>
@@ -72,16 +72,16 @@ export function SourcesSheet({ sources, isOpen, onClose }: SourcesSheetProps) {
         </div>
 
         {/* Source List */}
-        <div className="overflow-y-auto p-4">
+        <div className="overflow-y-auto p-3 sm:p-4">
           <div className="space-y-2">
             {sources.map((source, idx) => (
               <div
                 key={idx}
-                className="flex items-start gap-3 rounded-lg bg-sidebar-accent/50 p-3 transition-colors hover:bg-sidebar-accent"
+                className="flex items-start gap-2 sm:gap-3 rounded-lg bg-sidebar-accent/50 p-2.5 sm:p-3 transition-colors hover:bg-sidebar-accent"
               >
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <div className="flex size-7 sm:size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                   <svg
-                    className="size-4 text-primary"
+                    className="size-3.5 sm:size-4 text-primary"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -95,10 +95,10 @@ export function SourcesSheet({ sources, isOpen, onClose }: SourcesSheetProps) {
                   </svg>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-sidebar-foreground text-sm">
+                  <p className="font-medium text-sidebar-foreground text-xs sm:text-sm">
                     {formatSourceName(source)}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                     {source}
                   </p>
                 </div>
